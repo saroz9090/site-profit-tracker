@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { DataTable } from '@/components/ui/data-table';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { mockContractors, mockContractorWorks, mockContractorPayments, mockProjects } from '@/data/mockData';
+import { useData } from '@/contexts/DataContext';
 import { formatCurrency, formatDate } from '@/lib/format';
 import {
   Dialog,
@@ -25,12 +25,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ContractorWork, ContractorPayment } from '@/types';
 import { cn } from '@/lib/utils';
 import { HardHat, Wallet, Wrench } from 'lucide-react';
+import { mockContractors } from '@/data/mockData';
 
 export function ContractorsView() {
   const [showAddWorkDialog, setShowAddWorkDialog] = useState(false);
   const [showAddPaymentDialog, setShowAddPaymentDialog] = useState(false);
-  const [works, setWorks] = useState(mockContractorWorks);
-  const [payments, setPayments] = useState(mockContractorPayments);
+  const { data, addContractorWork, addContractorPayment } = useData();
+  const works = data.contractors;
+  const payments = data.contractorPayments;
+  const projects = data.projects;
 
   const workColumns = [
     {
@@ -139,13 +142,13 @@ export function ContractorsView() {
     },
   ];
 
-  const handleAddWork = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddWork = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const contractorId = formData.get('contractorId') as string;
     const contractor = mockContractors.find(c => c.id === contractorId);
     const projectId = formData.get('projectId') as string;
-    const project = mockProjects.find(p => p.id === projectId);
+    const project = projects.find(p => p.id === projectId);
     
     const newWork: ContractorWork = {
       id: `cw${Date.now()}`,
@@ -160,43 +163,39 @@ export function ContractorsView() {
       amountPaid: 0,
       status: 'pending',
     };
-    setWorks([newWork, ...works]);
+    await addContractorWork(newWork);
     setShowAddWorkDialog(false);
   };
 
-  const handleAddPayment = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddPayment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const workId = formData.get('workId') as string;
     const work = works.find(w => w.id === workId);
     
+    if (!work) return;
+
     const amount = Number(formData.get('amount'));
     const newPayment: ContractorPayment = {
       id: `cpp${Date.now()}`,
       date: formData.get('date') as string,
       workId,
-      contractorId: work?.contractorId || '',
-      contractorName: work?.contractorName || '',
-      projectId: work?.projectId || '',
-      projectName: work?.projectName || '',
+      contractorId: work.contractorId,
+      contractorName: work.contractorName,
+      projectId: work.projectId,
+      projectName: work.projectName,
       amount,
       paymentMode: formData.get('paymentMode') as 'cash' | 'bank' | 'upi',
     };
     
-    // Update work
-    setWorks(works.map(w => {
-      if (w.id === workId) {
-        const newPaid = w.amountPaid + amount;
-        return {
-          ...w,
-          amountPaid: newPaid,
-          status: newPaid >= w.workValue ? 'paid' : 'partial',
-        };
-      }
-      return w;
-    }));
+    const newPaid = work.amountPaid + amount;
+    const updatedWork: ContractorWork = {
+      ...work,
+      amountPaid: newPaid,
+      status: newPaid >= work.workValue ? 'paid' : 'partial',
+    };
     
-    setPayments([newPayment, ...payments]);
+    await addContractorPayment(newPayment, updatedWork);
     setShowAddPaymentDialog(false);
   };
 
@@ -290,7 +289,7 @@ export function ContractorsView() {
                   <SelectValue placeholder="Select project" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockProjects.filter(p => p.status === 'active').map(p => (
+                  {projects.filter(p => p.status === 'active').map(p => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
                 </SelectContent>
