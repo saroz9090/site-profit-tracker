@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { DataTable } from '@/components/ui/data-table';
-import { mockMaterials, mockProjects } from '@/data/mockData';
+import { useData } from '@/contexts/DataContext';
 import { formatCurrency, formatDate, formatNumber } from '@/lib/format';
 import {
   Dialog,
@@ -24,8 +24,10 @@ import { Package } from 'lucide-react';
 
 export function MaterialsView() {
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [materials, setMaterials] = useState(mockMaterials);
   const [filterProject, setFilterProject] = useState<string>('all');
+  const { data, addMaterial } = useData();
+  const materials = data.materials;
+  const projects = data.projects;
 
   const filteredMaterials = filterProject === 'all' 
     ? materials 
@@ -95,11 +97,11 @@ export function MaterialsView() {
     },
   ];
 
-  const handleAddMaterial = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddMaterial = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const projectId = formData.get('projectId') as string;
-    const project = mockProjects.find(p => p.id === projectId);
+    const project = projects.find(p => p.id === projectId);
     const quantity = Number(formData.get('quantity'));
     const unitPrice = Number(formData.get('unitPrice'));
     
@@ -115,7 +117,7 @@ export function MaterialsView() {
       projectId,
       projectName: project?.name || '',
     };
-    setMaterials([newMaterial, ...materials]);
+    await addMaterial(newMaterial);
     setShowAddDialog(false);
   };
 
@@ -148,7 +150,7 @@ export function MaterialsView() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Projects</SelectItem>
-              {mockProjects.map(p => (
+              {projects.map(p => (
                 <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
               ))}
             </SelectContent>
@@ -176,7 +178,7 @@ export function MaterialsView() {
                     <SelectValue placeholder="Select project" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockProjects.filter(p => p.status === 'active').map(p => (
+                    {projects.filter(p => p.status === 'active').map(p => (
                       <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                     ))}
                   </SelectContent>

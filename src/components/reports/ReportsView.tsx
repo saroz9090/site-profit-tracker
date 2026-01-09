@@ -1,5 +1,5 @@
 import { Header } from '@/components/layout/Header';
-import { mockProjects, mockMaterials, mockBills, mockContractorWorks } from '@/data/mockData';
+import { useData } from '@/contexts/DataContext';
 import { formatCurrency, formatNumber, calculateProfit, calculateProfitPercentage } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,15 +7,17 @@ import {
   TrendingUp, 
   TrendingDown, 
   Package, 
-  Users, 
   HardHat,
   AlertCircle,
   CheckCircle
 } from 'lucide-react';
 
 export function ReportsView() {
+  const { data } = useData();
+  const { projects, materials, bills, contractors } = data;
+
   // Project Profit/Loss Report
-  const projectReport = mockProjects.map(p => ({
+  const projectReport = projects.map(p => ({
     ...p,
     profit: calculateProfit(p),
     profitPercent: calculateProfitPercentage(p),
@@ -23,8 +25,8 @@ export function ReportsView() {
   }));
 
   // Material Usage Report
-  const materialByProject = mockProjects.map(project => {
-    const projectMaterials = mockMaterials.filter(m => m.projectId === project.id);
+  const materialByProject = projects.map(project => {
+    const projectMaterials = materials.filter(m => m.projectId === project.id);
     const materialSummary = projectMaterials.reduce((acc, m) => {
       if (!acc[m.material]) {
         acc[m.material] = { quantity: 0, total: 0, unit: m.unit };
@@ -45,7 +47,7 @@ export function ReportsView() {
   });
 
   // Customer Pending Report
-  const customerPendingReport = mockBills
+  const customerPendingReport = bills
     .filter(b => b.status !== 'paid')
     .map(b => ({
       ...b,
@@ -54,7 +56,7 @@ export function ReportsView() {
     .sort((a, b) => b.pending - a.pending);
 
   // Contractor Pending Report
-  const contractorPendingReport = mockContractorWorks
+  const contractorPendingReport = contractors
     .filter(w => w.status !== 'paid')
     .map(w => ({
       ...w,

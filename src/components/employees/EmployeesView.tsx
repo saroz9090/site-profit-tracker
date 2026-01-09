@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { DataTable } from '@/components/ui/data-table';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { mockEmployees, mockSalaryPayments, mockProjects } from '@/data/mockData';
+import { useData } from '@/contexts/DataContext';
 import { formatCurrency, formatDate } from '@/lib/format';
 import {
   Dialog,
@@ -28,8 +28,10 @@ import { cn } from '@/lib/utils';
 export function EmployeesView() {
   const [showAddEmployeeDialog, setShowAddEmployeeDialog] = useState(false);
   const [showPaySalaryDialog, setShowPaySalaryDialog] = useState(false);
-  const [employees, setEmployees] = useState(mockEmployees);
-  const [salaryPayments, setSalaryPayments] = useState(mockSalaryPayments);
+  const { data, addEmployee, addSalaryPayment } = useData();
+  const employees = data.employees;
+  const salaryPayments = data.salaryPayments;
+  const projects = data.projects;
 
   const employeeColumns = [
     {
@@ -127,12 +129,12 @@ export function EmployeesView() {
     },
   ];
 
-  const handleAddEmployee = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddEmployee = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const assignedTo = formData.get('assignedTo') as 'project' | 'office';
     const projectId = formData.get('projectId') as string;
-    const project = mockProjects.find(p => p.id === projectId);
+    const project = projects.find(p => p.id === projectId);
     
     const newEmployee: Employee = {
       id: `e${Date.now()}`,
@@ -143,29 +145,31 @@ export function EmployeesView() {
       projectId: assignedTo === 'project' ? projectId : undefined,
       projectName: assignedTo === 'project' ? project?.name : undefined,
     };
-    setEmployees([...employees, newEmployee]);
+    await addEmployee(newEmployee);
     setShowAddEmployeeDialog(false);
   };
 
-  const handlePaySalary = (e: React.FormEvent<HTMLFormElement>) => {
+  const handlePaySalary = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const employeeId = formData.get('employeeId') as string;
     const employee = employees.find(emp => emp.id === employeeId);
     
+    if (!employee) return;
+
     const newPayment: SalaryPayment = {
       id: `sp${Date.now()}`,
       date: formData.get('date') as string,
       employeeId,
-      employeeName: employee?.name || '',
+      employeeName: employee.name,
       month: formData.get('month') as string,
       amount: Number(formData.get('amount')),
-      projectId: employee?.projectId,
-      projectName: employee?.projectName,
-      costType: employee?.assignedTo || 'office',
+      projectId: employee.projectId,
+      projectName: employee.projectName,
+      costType: employee.assignedTo,
       paymentMode: formData.get('paymentMode') as 'cash' | 'bank' | 'upi',
     };
-    setSalaryPayments([newPayment, ...salaryPayments]);
+    await addSalaryPayment(newPayment);
     setShowPaySalaryDialog(false);
   };
 
@@ -275,7 +279,7 @@ export function EmployeesView() {
                   <SelectValue placeholder="Select project (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockProjects.filter(p => p.status === 'active').map(p => (
+                  {projects.filter(p => p.status === 'active').map(p => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
                 </SelectContent>

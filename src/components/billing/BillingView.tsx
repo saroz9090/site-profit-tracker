@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { DataTable } from '@/components/ui/data-table';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { mockBills, mockCustomerPayments, mockProjects } from '@/data/mockData';
+import { useData } from '@/contexts/DataContext';
 import { formatCurrency, formatDate } from '@/lib/format';
 import {
   Dialog,
@@ -29,8 +29,10 @@ import { Receipt, Wallet } from 'lucide-react';
 export function BillingView() {
   const [showAddBillDialog, setShowAddBillDialog] = useState(false);
   const [showAddPaymentDialog, setShowAddPaymentDialog] = useState(false);
-  const [bills, setBills] = useState(mockBills);
-  const [payments, setPayments] = useState(mockCustomerPayments);
+  const { data, addBill, addPayment } = useData();
+  const bills = data.bills;
+  const payments = data.payments;
+  const projects = data.projects;
 
   const billColumns = [
     {
@@ -138,11 +140,11 @@ export function BillingView() {
     },
   ];
 
-  const handleAddBill = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddBill = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const projectId = formData.get('projectId') as string;
-    const project = mockProjects.find(p => p.id === projectId);
+    const project = projects.find(p => p.id === projectId);
     
     const newBill: CustomerBill = {
       id: `b${Date.now()}`,
@@ -156,43 +158,39 @@ export function BillingView() {
       amountReceived: 0,
       status: 'pending',
     };
-    setBills([newBill, ...bills]);
+    await addBill(newBill);
     setShowAddBillDialog(false);
   };
 
-  const handleAddPayment = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddPayment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const billId = formData.get('billId') as string;
     const bill = bills.find(b => b.id === billId);
     
+    if (!bill) return;
+
     const amount = Number(formData.get('amount'));
     const newPayment: CustomerPayment = {
       id: `cp${Date.now()}`,
       date: formData.get('date') as string,
       billId,
-      billNumber: bill?.billNumber || '',
-      projectId: bill?.projectId || '',
-      projectName: bill?.projectName || '',
-      customer: bill?.customer || '',
+      billNumber: bill.billNumber,
+      projectId: bill.projectId,
+      projectName: bill.projectName,
+      customer: bill.customer,
       amount,
       paymentMode: formData.get('paymentMode') as 'cash' | 'bank' | 'upi',
     };
     
-    // Update bill
-    setBills(bills.map(b => {
-      if (b.id === billId) {
-        const newReceived = b.amountReceived + amount;
-        return {
-          ...b,
-          amountReceived: newReceived,
-          status: newReceived >= b.amount ? 'paid' : 'partial',
-        };
-      }
-      return b;
-    }));
+    const newReceived = bill.amountReceived + amount;
+    const updatedBill: CustomerBill = {
+      ...bill,
+      amountReceived: newReceived,
+      status: newReceived >= bill.amount ? 'paid' : 'partial',
+    };
     
-    setPayments([newPayment, ...payments]);
+    await addPayment(newPayment, updatedBill);
     setShowAddPaymentDialog(false);
   };
 
@@ -253,7 +251,7 @@ export function BillingView() {
                     <SelectValue placeholder="Select project" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockProjects.filter(p => p.status === 'active').map(p => (
+                    {projects.filter(p => p.status === 'active').map(p => (
                       <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                     ))}
                   </SelectContent>

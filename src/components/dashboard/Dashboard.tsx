@@ -9,23 +9,25 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
-import { DataTable } from '@/components/ui/data-table';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { mockProjects, mockBills, mockContractorWorks } from '@/data/mockData';
+import { useData } from '@/contexts/DataContext';
 import { formatCurrency, calculateProfit, calculateProfitPercentage } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 export function Dashboard() {
+  const { data } = useData();
+  const { projects, bills, contractors } = data;
+
   // Calculate totals
-  const activeProjects = mockProjects.filter(p => p.status === 'active').length;
-  const totalBilled = mockProjects.reduce((sum, p) => sum + p.totalBilled, 0);
-  const totalReceived = mockProjects.reduce((sum, p) => sum + p.totalReceived, 0);
-  const totalProfit = mockProjects.reduce((sum, p) => sum + calculateProfit(p), 0);
-  const pendingFromCustomers = mockBills.reduce((sum, b) => sum + (b.amount - b.amountReceived), 0);
-  const pendingToContractors = mockContractorWorks.reduce((sum, w) => sum + (w.workValue - w.amountPaid), 0);
+  const activeProjects = projects.filter(p => p.status === 'active').length;
+  const totalBilled = projects.reduce((sum, p) => sum + p.totalBilled, 0);
+  const totalReceived = projects.reduce((sum, p) => sum + p.totalReceived, 0);
+  const totalProfit = projects.reduce((sum, p) => sum + calculateProfit(p), 0);
+  const pendingFromCustomers = bills.reduce((sum, b) => sum + (b.amount - b.amountReceived), 0);
+  const pendingToContractors = contractors.reduce((sum, w) => sum + (w.workValue - w.amountPaid), 0);
 
   // Project overview data
-  const projectOverview = mockProjects.map(p => ({
+  const projectOverview = projects.map(p => ({
     ...p,
     profit: calculateProfit(p),
     profitPercent: calculateProfitPercentage(p),
@@ -33,7 +35,7 @@ export function Dashboard() {
   }));
 
   // Recent pending bills
-  const pendingBills = mockBills.filter(b => b.status !== 'paid').slice(0, 5);
+  const pendingBills = bills.filter(b => b.status !== 'paid').slice(0, 5);
 
   return (
     <div className="p-6 space-y-6">
@@ -42,7 +44,7 @@ export function Dashboard() {
         <StatCard
           title="Active Projects"
           value={activeProjects}
-          subtitle={`${mockProjects.length} total projects`}
+          subtitle={`${projects.length} total projects`}
           icon={FolderKanban}
           variant="info"
         />
@@ -148,7 +150,7 @@ export function Dashboard() {
             <span className="text-xs font-medium">Materials</span>
           </div>
           <p className="text-lg font-bold text-foreground">
-            {formatCurrency(mockProjects.reduce((sum, p) => sum + p.totalMaterialCost, 0))}
+            {formatCurrency(projects.reduce((sum, p) => sum + p.totalMaterialCost, 0))}
           </p>
         </div>
         <div className="stat-card">
@@ -157,7 +159,7 @@ export function Dashboard() {
             <span className="text-xs font-medium">Labour Cost</span>
           </div>
           <p className="text-lg font-bold text-foreground">
-            {formatCurrency(mockProjects.reduce((sum, p) => sum + p.totalLabourCost, 0))}
+            {formatCurrency(projects.reduce((sum, p) => sum + p.totalLabourCost, 0))}
           </p>
         </div>
         <div className="stat-card">

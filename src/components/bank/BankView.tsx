@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { DataTable } from '@/components/ui/data-table';
-import { mockBankTransactions } from '@/data/mockData';
+import { useData } from '@/contexts/DataContext';
 import { formatCurrency, formatDate } from '@/lib/format';
 import {
   Dialog,
@@ -25,7 +25,8 @@ import { ArrowDownLeft, ArrowUpRight, Building2, Wallet } from 'lucide-react';
 
 export function BankView() {
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [transactions, setTransactions] = useState(mockBankTransactions);
+  const { data, addTransaction } = useData();
+  const transactions = data.transactions;
 
   // Calculate balances
   const bankBalance = transactions.reduce((sum, t) => {
@@ -91,7 +92,7 @@ export function BankView() {
     },
   ];
 
-  const handleAddTransaction = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
@@ -103,7 +104,7 @@ export function BankView() {
       description: formData.get('description') as string,
       mode: formData.get('mode') as 'cash' | 'bank' | 'upi',
     };
-    setTransactions([newTransaction, ...transactions]);
+    await addTransaction(newTransaction);
     setShowAddDialog(false);
   };
 

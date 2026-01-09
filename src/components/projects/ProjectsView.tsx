@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { DataTable } from '@/components/ui/data-table';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { mockProjects } from '@/data/mockData';
+import { useData } from '@/contexts/DataContext';
 import { formatCurrency, formatDate, calculateProfit } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import {
@@ -25,7 +25,8 @@ import { Project } from '@/types';
 
 export function ProjectsView() {
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [projects, setProjects] = useState(mockProjects);
+  const { data, addProject } = useData();
+  const projects = data.projects;
 
   const columns = [
     {
@@ -100,7 +101,7 @@ export function ProjectsView() {
     },
   ];
 
-  const handleAddProject = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddProject = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const newProject: Project = {
@@ -115,7 +116,7 @@ export function ProjectsView() {
       totalLabourCost: 0,
       totalOtherCost: 0,
     };
-    setProjects([...projects, newProject]);
+    await addProject(newProject);
     setShowAddDialog(false);
   };
 
