@@ -21,9 +21,9 @@ export function SheetsConnection() {
   const [existingId, setExistingId] = useState('');
   const [showExistingInput, setShowExistingInput] = useState(false);
 
-  const handleConnectExisting = () => {
+  const handleConnectExisting = async () => {
     if (existingId.trim()) {
-      connectExisting(existingId.trim());
+      await connectExisting(existingId.trim());
       setExistingId('');
       setShowExistingInput(false);
     }

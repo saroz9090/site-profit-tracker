@@ -8,17 +8,29 @@ import {
   HardHat,
   AlertCircle,
   Loader2,
-  CloudOff
+  CloudOff,
+  Link
 } from 'lucide-react';
+import { useState } from 'react';
 import { StatCard } from '@/components/ui/stat-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { useData } from '@/contexts/DataContext';
 import { formatCurrency, calculateProfit, calculateProfitPercentage } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+function extractSpreadsheetId(value: string): string | null {
+  const trimmed = value.trim();
+  const matchUrl = trimmed.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (matchUrl?.[1]) return matchUrl[1];
+  const matchId = trimmed.match(/^([a-zA-Z0-9-_]{20,})$/);
+  return matchId?.[1] ?? null;
+}
 
 export function Dashboard() {
-  const { data, isConnected, isSyncing, hasInitialized, connect, isLoading } = useData();
+  const { data, isConnected, isSyncing, hasInitialized, connect, connectExisting, isLoading } = useData();
+  const [existingInput, setExistingInput] = useState('');
   const { projects, bills, contractors } = data;
 
   // Show loading state during initial sync
@@ -33,16 +45,35 @@ export function Dashboard() {
 
   // Show connect prompt if not connected
   if (!isConnected) {
+    const id = extractSpreadsheetId(existingInput);
+
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
+      <div className="flex flex-col items-center justify-center h-64 gap-4 px-6">
         <CloudOff className="w-12 h-12 text-muted-foreground" />
-        <div className="text-center">
-          <h3 className="font-semibold text-lg text-foreground mb-2">Not Connected to Google Sheets</h3>
-          <p className="text-muted-foreground mb-4">Connect to Google Sheets to start tracking your construction data.</p>
-          <Button onClick={() => connect()} disabled={isLoading}>
-            {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            Connect Google Sheets
-          </Button>
+        <div className="text-center w-full max-w-lg">
+          <h3 className="font-semibold text-lg text-foreground mb-2">Connect your Google Sheet</h3>
+          <p className="text-muted-foreground mb-4">
+            Paste your Sheet link/ID and we’ll create the required tabs + headers automatically.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-2 mb-3">
+            <Input
+              placeholder="Paste Sheet link or Spreadsheet ID"
+              value={existingInput}
+              onChange={(e) => setExistingInput(e.target.value)}
+            />
+            <Button onClick={() => id && connectExisting(id)} disabled={!id || isSyncing}>
+              {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Link className="w-4 h-4 mr-2" />}
+              Connect Existing
+            </Button>
+          </div>
+
+          <div className="flex justify-center">
+            <Button onClick={() => connect()} disabled={isLoading} variant="outline">
+              {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Create New Spreadsheet
+            </Button>
+          </div>
         </div>
       </div>
     );

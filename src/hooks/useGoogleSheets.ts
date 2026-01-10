@@ -4,6 +4,7 @@ import {
   getSpreadsheetId,
   setSpreadsheetId,
   createSpreadsheet,
+  initializeSpreadsheet,
   readAllData,
   appendData,
   updateRow,
@@ -81,11 +82,29 @@ export function useGoogleSheets() {
   }, []);
 
   // Connect to existing spreadsheet
-  const connectExisting = useCallback((id: string) => {
-    setSpreadsheetId(id);
-    setSpreadsheetIdState(id);
-    setIsConnected(true);
-    toast.success('Connected to existing spreadsheet');
+  const connectExisting = useCallback(async (id: string) => {
+    setIsSyncing(true);
+    try {
+      setSpreadsheetId(id);
+      setSpreadsheetIdState(id);
+      setIsConnected(true);
+
+      // Ensure sheets + headers exist so writes persist
+      await initializeSpreadsheet(id);
+
+      const sheetsData = await readAllData(id);
+      setData(sheetsData);
+      setHasInitialized(true);
+
+      toast.success('Connected to existing spreadsheet');
+    } catch (error: any) {
+      console.error('Failed to connect to existing sheet:', error);
+      toast.error(`Failed to connect: ${error.message}`);
+      setIsConnected(false);
+      setSpreadsheetIdState(null);
+    } finally {
+      setIsSyncing(false);
+    }
   }, []);
 
   // Disconnect
