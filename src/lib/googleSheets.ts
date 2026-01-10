@@ -46,6 +46,11 @@ export async function createSpreadsheet(): Promise<string> {
   return spreadsheetId;
 }
 
+// Ensure an existing spreadsheet has required sheets + headers
+export async function initializeSpreadsheet(spreadsheetId: string): Promise<void> {
+  await callSheetsApi({ action: 'initialize', spreadsheetId });
+}
+
 // Read all data from the spreadsheet
 export async function readAllData(spreadsheetId: string): Promise<{
   projects: Project[];

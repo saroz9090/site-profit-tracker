@@ -37,7 +37,8 @@ async function getAccessToken(): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const payload = {
     iss: serviceAccountEmail,
-    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    // Drive scope is required for creating spreadsheets in Drive
+    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
     aud: 'https://oauth2.googleapis.com/token',
     iat: now,
     exp: now + 3600,
@@ -181,12 +182,64 @@ async function initializeSheetHeaders(accessToken: string, spreadsheetId: string
     SalaryPayments: ['id', 'date', 'employeeId', 'employeeName', 'month', 'costType', 'paymentMode', 'amount', 'projectId', 'projectName'],
     Transactions: ['id', 'date', 'type', 'description', 'amount', 'mode'],
   };
-  
+
+  // Read existing sheet titles
+  const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets(properties(title))`;
+  const metaRes = await fetch(metaUrl, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+  if (!metaRes.ok) {
+    const err = await metaRes.text();
+    throw new Error(`Failed to read spreadsheet metadata: ${err}`);
+  }
+  const meta = await metaRes.json();
+  const existingTitles = new Set<string>((meta.sheets || [])
+    .map((s: any) => s?.properties?.title)
+    .filter(Boolean));
+
+  // Create any missing sheets
+  const missingTitles = Object.keys(headers).filter((title) => !existingTitles.has(title));
+  if (missingTitles.length > 0) {
+    const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`;
+    const batchRes = await fetch(batchUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        requests: missingTitles.map((title) => ({ addSheet: { properties: { title } } })),
+      }),
+    });
+
+    if (!batchRes.ok) {
+      const err = await batchRes.text();
+      throw new Error(`Failed to add missing sheets: ${err}`);
+    }
+  }
+
+  // Add header row to each sheet if it's missing
   for (const [sheetName, headerRow] of Object.entries(headers)) {
+    const headerCheckUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${sheetName}!1:1`)}`;
+    const headerRes = await fetch(headerCheckUrl, {
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+    });
+
+    if (!headerRes.ok) {
+      const err = await headerRes.text();
+      throw new Error(`Failed to read header row for ${sheetName}: ${err}`);
+    }
+
+    const headerData = await headerRes.json();
+    const existingHeader = (headerData.values || [])[0] || [];
+    const hasAnyHeader = existingHeader.length > 0 && existingHeader.some((c: string) => `${c}`.trim() !== '');
+
+    if (hasAnyHeader) {
+      continue;
+    }
+
     const range = `${sheetName}!A1`;
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`;
-    
-    await fetch(url, {
+    const putUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`;
+
+    const putRes = await fetch(putUrl, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -194,6 +247,11 @@ async function initializeSheetHeaders(accessToken: string, spreadsheetId: string
       },
       body: JSON.stringify({ values: [headerRow] }),
     });
+
+    if (!putRes.ok) {
+      const err = await putRes.text();
+      throw new Error(`Failed to write headers for ${sheetName}: ${err}`);
+    }
   }
 }
 
@@ -218,6 +276,19 @@ serve(async (req) => {
           success: true, 
           spreadsheetId: newSpreadsheetId,
           message: 'Spreadsheet created with all sheets and headers'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      case 'initialize': {
+        if (!spreadsheetId) {
+          throw new Error('spreadsheetId is required');
+        }
+        await initializeSheetHeaders(accessToken, spreadsheetId);
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'Spreadsheet initialized (sheets + headers ensured)'
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });

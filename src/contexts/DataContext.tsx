@@ -20,7 +20,7 @@ interface DataContextType {
   spreadsheetId: string | null;
   data: SheetsData;
   connect: () => Promise<string>;
-  connectExisting: (id: string) => void;
+  connectExisting: (id: string) => Promise<void>;
   disconnect: () => void;
   syncFromSheets: () => Promise<void>;
   addProject: (project: Project) => Promise<void>;
