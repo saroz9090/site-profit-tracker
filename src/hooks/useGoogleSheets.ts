@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import {
   getSpreadsheetId,
@@ -28,17 +28,6 @@ import type {
   SalaryPayment,
   BankTransaction,
 } from '@/types';
-import {
-  mockProjects,
-  mockMaterials,
-  mockBills,
-  mockCustomerPayments,
-  mockContractorWorks,
-  mockContractorPayments,
-  mockEmployees,
-  mockSalaryPayments,
-  mockBankTransactions,
-} from '@/data/mockData';
 
 export interface SheetsData {
   projects: Project[];
@@ -52,22 +41,26 @@ export interface SheetsData {
   transactions: BankTransaction[];
 }
 
+const EMPTY_DATA: SheetsData = {
+  projects: [],
+  materials: [],
+  bills: [],
+  payments: [],
+  contractors: [],
+  contractorPayments: [],
+  employees: [],
+  salaryPayments: [],
+  transactions: [],
+};
+
 export function useGoogleSheets() {
   const [spreadsheetId, setSpreadsheetIdState] = useState<string | null>(getSpreadsheetId());
   const [isConnected, setIsConnected] = useState(!!getSpreadsheetId());
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [data, setData] = useState<SheetsData>({
-    projects: mockProjects,
-    materials: mockMaterials,
-    bills: mockBills,
-    payments: mockCustomerPayments,
-    contractors: mockContractorWorks,
-    contractorPayments: mockContractorPayments,
-    employees: mockEmployees,
-    salaryPayments: mockSalaryPayments,
-    transactions: mockBankTransactions,
-  });
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const [data, setData] = useState<SheetsData>(EMPTY_DATA);
+  const syncRef = useRef(false);
 
   // Connect and create new spreadsheet
   const connect = useCallback(async () => {
@@ -263,17 +256,37 @@ export function useGoogleSheets() {
     }
   }, [spreadsheetId]);
 
-  // Auto-sync on connect
+  // Auto-sync on mount and when connection changes
   useEffect(() => {
-    if (isConnected && spreadsheetId) {
-      syncFromSheets();
-    }
+    const doSync = async () => {
+      if (isConnected && spreadsheetId && !syncRef.current) {
+        syncRef.current = true;
+        setIsSyncing(true);
+        try {
+          const sheetsData = await readAllData(spreadsheetId);
+          setData(sheetsData);
+          setHasInitialized(true);
+          console.log('Data synced from Google Sheets:', sheetsData);
+        } catch (error: any) {
+          console.error('Initial sync failed:', error);
+          toast.error(`Failed to load data: ${error.message}`);
+        } finally {
+          setIsSyncing(false);
+          syncRef.current = false;
+        }
+      } else if (!isConnected) {
+        setData(EMPTY_DATA);
+        setHasInitialized(true);
+      }
+    };
+    doSync();
   }, [isConnected, spreadsheetId]);
 
   return {
     isConnected,
     isLoading,
     isSyncing,
+    hasInitialized,
     spreadsheetId,
     data,
     connect,

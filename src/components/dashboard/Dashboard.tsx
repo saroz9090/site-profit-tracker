@@ -6,17 +6,47 @@ import {
   Receipt,
   Package,
   HardHat,
-  AlertCircle
+  AlertCircle,
+  Loader2,
+  CloudOff
 } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { useData } from '@/contexts/DataContext';
 import { formatCurrency, calculateProfit, calculateProfitPercentage } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 export function Dashboard() {
-  const { data } = useData();
+  const { data, isConnected, isSyncing, hasInitialized, connect, isLoading } = useData();
   const { projects, bills, contractors } = data;
+
+  // Show loading state during initial sync
+  if (!hasInitialized && isConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Loading data from Google Sheets...</p>
+      </div>
+    );
+  }
+
+  // Show connect prompt if not connected
+  if (!isConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <CloudOff className="w-12 h-12 text-muted-foreground" />
+        <div className="text-center">
+          <h3 className="font-semibold text-lg text-foreground mb-2">Not Connected to Google Sheets</h3>
+          <p className="text-muted-foreground mb-4">Connect to Google Sheets to start tracking your construction data.</p>
+          <Button onClick={() => connect()} disabled={isLoading}>
+            {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            Connect Google Sheets
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Calculate totals
   const activeProjects = projects.filter(p => p.status === 'active').length;
@@ -39,6 +69,12 @@ export function Dashboard() {
 
   return (
     <div className="p-6 space-y-6">
+      {isSyncing && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Syncing with Google Sheets...
+        </div>
+      )}
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard

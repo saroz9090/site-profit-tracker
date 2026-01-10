@@ -16,6 +16,7 @@ interface DataContextType {
   isConnected: boolean;
   isLoading: boolean;
   isSyncing: boolean;
+  hasInitialized: boolean;
   spreadsheetId: string | null;
   data: SheetsData;
   connect: () => Promise<string>;
