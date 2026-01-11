@@ -28,11 +28,11 @@ export function ReportsView() {
   const materialByProject = projects.map(project => {
     const projectMaterials = materials.filter(m => m.projectId === project.id);
     const materialSummary = projectMaterials.reduce((acc, m) => {
-      if (!acc[m.material]) {
-        acc[m.material] = { quantity: 0, total: 0, unit: m.unit };
+      if (!acc[m.materialName]) {
+        acc[m.materialName] = { quantity: 0, total: 0, unit: m.unit };
       }
-      acc[m.material].quantity += m.quantity;
-      acc[m.material].total += m.totalAmount;
+      acc[m.materialName].quantity += m.quantity;
+      acc[m.materialName].total += m.totalAmount;
       return acc;
     }, {} as Record<string, { quantity: number; total: number; unit: string }>);
     

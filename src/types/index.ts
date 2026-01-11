@@ -14,12 +14,15 @@ export interface Project {
 export interface MaterialPurchase {
   id: string;
   date: string;
-  supplier: string;
-  material: string;
+  supplierId: string;
+  supplierName: string;
+  materialId: string;
+  materialName: string;
   quantity: number;
   unit: string;
   unitPrice: number;
   totalAmount: number;
+  amountPaid: number;
   projectId: string;
   projectName: string;
 }
@@ -114,4 +117,33 @@ export interface BankTransaction {
   mode: 'cash' | 'bank' | 'upi';
 }
 
-export type TabType = 'dashboard' | 'projects' | 'materials' | 'billing' | 'contractors' | 'employees' | 'bank' | 'reports';
+// Material catalog (master list of materials)
+export interface MaterialItem {
+  id: string;
+  name: string;
+  unit: string;
+  description?: string;
+}
+
+// Supplier with payment tracking
+export interface Supplier {
+  id: string;
+  name: string;
+  phone?: string;
+  address?: string;
+  totalPurchased: number;
+  totalPaid: number;
+}
+
+// Supplier payment
+export interface SupplierPayment {
+  id: string;
+  date: string;
+  supplierId: string;
+  supplierName: string;
+  amount: number;
+  paymentMode: 'cash' | 'bank' | 'upi';
+  description?: string;
+}
+
+export type TabType = 'dashboard' | 'projects' | 'materials' | 'billing' | 'contractors' | 'employees' | 'bank' | 'reports' | 'suppliers';

@@ -3,6 +3,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { ProjectsView } from '@/components/projects/ProjectsView';
 import { MaterialsView } from '@/components/materials/MaterialsView';
+import { SuppliersView } from '@/components/suppliers/SuppliersView';
 import { BillingView } from '@/components/billing/BillingView';
 import { ContractorsView } from '@/components/contractors/ContractorsView';
 import { EmployeesView } from '@/components/employees/EmployeesView';
@@ -27,6 +28,8 @@ const Index = () => {
         return <ProjectsView />;
       case 'materials':
         return <MaterialsView />;
+      case 'suppliers':
+        return <SuppliersView />;
       case 'billing':
         return <BillingView />;
       case 'contractors':

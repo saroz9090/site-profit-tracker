@@ -22,10 +22,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Project } from '@/types';
+import { Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function ProjectsView() {
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const { data, addProject } = useData();
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const { data, addProject, updateProject, deleteProject } = useData();
   const projects = data.projects;
 
   const columns = [
@@ -99,6 +103,32 @@ export function ProjectsView() {
       },
       className: 'text-right',
     },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (project: Project) => (
+        <div className="flex items-center gap-1 justify-end">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => {
+              setSelectedProject(project);
+              setShowEditDialog(true);
+            }}
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => handleDelete(project.id)}
+          >
+            <Trash2 className="w-4 h-4 text-destructive" />
+          </Button>
+        </div>
+      ),
+      className: 'text-right',
+    },
   ];
 
   const handleAddProject = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -118,6 +148,40 @@ export function ProjectsView() {
     };
     await addProject(newProject);
     setShowAddDialog(false);
+    toast.success('Project added');
+  };
+
+  const handleEditProject = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedProject) return;
+    
+    const formData = new FormData(e.currentTarget);
+    const updated: Project = {
+      ...selectedProject,
+      name: formData.get('name') as string,
+      customer: formData.get('customer') as string,
+      startDate: formData.get('startDate') as string,
+      status: formData.get('status') as 'active' | 'completed' | 'on-hold',
+    };
+    await updateProject(updated);
+    setShowEditDialog(false);
+    setSelectedProject(null);
+    toast.success('Project updated');
+  };
+
+  const handleDelete = async (id: string) => {
+    // Check if project has related data
+    const hasMaterials = data.materials.some(m => m.projectId === id);
+    const hasBills = data.bills.some(b => b.projectId === id);
+    const hasContractors = data.contractors.some(c => c.projectId === id);
+    
+    if (hasMaterials || hasBills || hasContractors) {
+      toast.error('Cannot delete project with existing data (materials, bills, or contractor work)');
+      return;
+    }
+    
+    await deleteProject(id);
+    toast.success('Project deleted');
   };
 
   return (
@@ -132,6 +196,7 @@ export function ProjectsView() {
         <DataTable columns={columns} data={projects} />
       </div>
 
+      {/* Add Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -171,6 +236,52 @@ export function ProjectsView() {
               </Button>
               <Button type="submit" className="btn-accent">
                 Add Project
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Project</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditProject} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="editName">Project Name</Label>
+              <Input id="editName" name="name" defaultValue={selectedProject?.name} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editCustomer">Customer Name</Label>
+              <Input id="editCustomer" name="customer" defaultValue={selectedProject?.customer} required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="editStartDate">Start Date</Label>
+                <Input id="editStartDate" name="startDate" type="date" defaultValue={selectedProject?.startDate} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editStatus">Status</Label>
+                <Select name="status" defaultValue={selectedProject?.status || 'active'}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="on-hold">On Hold</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="btn-accent">
+                Save Changes
               </Button>
             </div>
           </form>
