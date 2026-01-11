@@ -8,7 +8,10 @@ import type {
   ContractorPayment, 
   Employee, 
   SalaryPayment, 
-  BankTransaction 
+  BankTransaction,
+  MaterialItem,
+  Supplier,
+  SupplierPayment
 } from "@/types";
 
 const STORAGE_KEY = 'buildtrack_spreadsheet_id';
@@ -62,6 +65,9 @@ export async function readAllData(spreadsheetId: string): Promise<{
   employees: Employee[];
   salaryPayments: SalaryPayment[];
   transactions: BankTransaction[];
+  materialItems: MaterialItem[];
+  suppliers: Supplier[];
+  supplierPayments: SupplierPayment[];
 }> {
   const result = await callSheetsApi({ action: 'readAll', spreadsheetId });
   const raw = result.data;
@@ -76,6 +82,9 @@ export async function readAllData(spreadsheetId: string): Promise<{
     employees: (raw.employees || []).map(parseEmployee),
     salaryPayments: (raw.salaryPayments || []).map(parseSalaryPayment),
     transactions: (raw.transactions || []).map(parseTransaction),
+    materialItems: (raw.materialItems || []).map(parseMaterialItem),
+    suppliers: (raw.suppliers || []).map(parseSupplier),
+    supplierPayments: (raw.supplierPayments || []).map(parseSupplierPayment),
   };
 }
 
@@ -109,6 +118,20 @@ export async function updateRow(
   });
 }
 
+// Delete a specific row
+export async function deleteRow(
+  spreadsheetId: string,
+  sheetType: string,
+  rowIndex: number
+): Promise<void> {
+  await callSheetsApi({
+    action: 'delete',
+    spreadsheetId,
+    sheetType,
+    rowIndex,
+  });
+}
+
 // Helper functions to serialize data for sheets
 export function projectToRow(p: Project): any[] {
   return [
@@ -131,12 +154,15 @@ export function materialToRow(m: MaterialPurchase): any[] {
     m.date,
     m.projectId,
     m.projectName,
-    m.supplier,
-    m.material,
+    m.supplierId,
+    m.supplierName,
+    m.materialId,
+    m.materialName,
     m.unit,
     m.quantity,
     m.unitPrice,
     m.totalAmount,
+    m.amountPaid,
   ];
 }
 
@@ -235,6 +261,38 @@ export function transactionToRow(t: BankTransaction): any[] {
   ];
 }
 
+export function materialItemToRow(m: MaterialItem): any[] {
+  return [
+    m.id,
+    m.name,
+    m.unit,
+    m.description || '',
+  ];
+}
+
+export function supplierToRow(s: Supplier): any[] {
+  return [
+    s.id,
+    s.name,
+    s.phone || '',
+    s.address || '',
+    s.totalPurchased,
+    s.totalPaid,
+  ];
+}
+
+export function supplierPaymentToRow(p: SupplierPayment): any[] {
+  return [
+    p.id,
+    p.date,
+    p.supplierId,
+    p.supplierName,
+    p.amount,
+    p.paymentMode,
+    p.description || '',
+  ];
+}
+
 // Helper functions to parse data from sheets
 function parseProject(row: Record<string, string>): Project {
   return {
@@ -257,12 +315,15 @@ function parseMaterial(row: Record<string, string>): MaterialPurchase {
     date: row.date,
     projectId: row.projectId,
     projectName: row.projectName,
-    supplier: row.supplier,
-    material: row.material,
+    supplierId: row.supplierId,
+    supplierName: row.supplierName,
+    materialId: row.materialId,
+    materialName: row.materialName,
     unit: row.unit,
     quantity: parseFloat(row.quantity) || 0,
     unitPrice: parseFloat(row.unitPrice) || 0,
     totalAmount: parseFloat(row.totalAmount) || 0,
+    amountPaid: parseFloat(row.amountPaid) || 0,
   };
 }
 
@@ -360,5 +421,37 @@ function parseTransaction(row: Record<string, string>): BankTransaction {
     description: row.description,
     amount: parseFloat(row.amount) || 0,
     mode: (row.mode as BankTransaction['mode']) || 'bank',
+  };
+}
+
+function parseMaterialItem(row: Record<string, string>): MaterialItem {
+  return {
+    id: row.id,
+    name: row.name,
+    unit: row.unit,
+    description: row.description || undefined,
+  };
+}
+
+function parseSupplier(row: Record<string, string>): Supplier {
+  return {
+    id: row.id,
+    name: row.name,
+    phone: row.phone || undefined,
+    address: row.address || undefined,
+    totalPurchased: parseFloat(row.totalPurchased) || 0,
+    totalPaid: parseFloat(row.totalPaid) || 0,
+  };
+}
+
+function parseSupplierPayment(row: Record<string, string>): SupplierPayment {
+  return {
+    id: row.id,
+    date: row.date,
+    supplierId: row.supplierId,
+    supplierName: row.supplierName,
+    amount: parseFloat(row.amount) || 0,
+    paymentMode: (row.paymentMode as SupplierPayment['paymentMode']) || 'cash',
+    description: row.description || undefined,
   };
 }

@@ -10,6 +10,9 @@ import type {
   Employee,
   SalaryPayment,
   BankTransaction,
+  MaterialItem,
+  Supplier,
+  SupplierPayment,
 } from '@/types';
 
 interface DataContextType {
@@ -24,7 +27,16 @@ interface DataContextType {
   disconnect: () => void;
   syncFromSheets: () => Promise<void>;
   addProject: (project: Project) => Promise<void>;
+  updateProject: (project: Project) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
   addMaterial: (material: MaterialPurchase) => Promise<void>;
+  addMaterialItem: (item: MaterialItem) => Promise<void>;
+  updateMaterialItem: (item: MaterialItem) => Promise<void>;
+  deleteMaterialItem: (id: string) => Promise<void>;
+  addSupplier: (supplier: Supplier) => Promise<void>;
+  updateSupplier: (supplier: Supplier) => Promise<void>;
+  deleteSupplier: (id: string) => Promise<void>;
+  addSupplierPayment: (payment: SupplierPayment) => Promise<void>;
   addBill: (bill: CustomerBill) => Promise<void>;
   addPayment: (payment: CustomerPayment, updatedBill: CustomerBill) => Promise<void>;
   addContractorWork: (work: ContractorWork) => Promise<void>;
@@ -38,7 +50,6 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const sheetsHook = useGoogleSheets();
-
   return (
     <DataContext.Provider value={sheetsHook}>
       {children}

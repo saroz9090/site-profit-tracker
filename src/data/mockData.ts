@@ -8,7 +8,10 @@ import {
   ContractorPayment,
   Employee,
   SalaryPayment,
-  BankTransaction 
+  BankTransaction,
+  MaterialItem,
+  Supplier,
+  SupplierPayment 
 } from '@/types';
 
 export const mockProjects: Project[] = [
@@ -50,56 +53,83 @@ export const mockProjects: Project[] = [
   },
 ];
 
+export const mockMaterialItems: MaterialItem[] = [
+  { id: 'mat1', name: 'Cement (OPC 53)', unit: 'bags', description: 'Ordinary Portland Cement 53 grade' },
+  { id: 'mat2', name: 'TMT Steel 12mm', unit: 'tonnes', description: 'Thermo Mechanically Treated steel bars' },
+  { id: 'mat3', name: 'River Sand', unit: 'brass', description: 'Fine aggregate for construction' },
+  { id: 'mat4', name: 'Crushed Stone', unit: 'brass', description: 'Coarse aggregate' },
+];
+
+export const mockSuppliers: Supplier[] = [
+  { id: 'sup1', name: 'Ambuja Cement Dealer', phone: '9876543210', address: 'Industrial Area', totalPurchased: 133000, totalPaid: 100000 },
+  { id: 'sup2', name: 'Steel World', phone: '9876543211', address: 'Steel Market', totalPurchased: 290000, totalPaid: 290000 },
+  { id: 'sup3', name: 'Sand & Aggregates Co.', phone: '9876543212', address: 'Quarry Road', totalPurchased: 135000, totalPaid: 100000 },
+];
+
 export const mockMaterials: MaterialPurchase[] = [
   {
     id: 'm1',
     date: '2024-12-01',
-    supplier: 'Ambuja Cement Dealer',
-    material: 'Cement (OPC 53)',
+    supplierId: 'sup1',
+    supplierName: 'Ambuja Cement Dealer',
+    materialId: 'mat1',
+    materialName: 'Cement (OPC 53)',
     quantity: 200,
     unit: 'bags',
     unitPrice: 380,
     totalAmount: 76000,
+    amountPaid: 50000,
     projectId: 'p1',
     projectName: 'Green Valley Apartments',
   },
   {
     id: 'm2',
     date: '2024-12-02',
-    supplier: 'Ambuja Cement Dealer',
-    material: 'Cement (OPC 53)',
+    supplierId: 'sup1',
+    supplierName: 'Ambuja Cement Dealer',
+    materialId: 'mat1',
+    materialName: 'Cement (OPC 53)',
     quantity: 150,
     unit: 'bags',
     unitPrice: 380,
     totalAmount: 57000,
+    amountPaid: 50000,
     projectId: 'p2',
     projectName: 'Sunrise Commercial Complex',
   },
   {
     id: 'm3',
     date: '2024-12-03',
-    supplier: 'Steel World',
-    material: 'TMT Steel 12mm',
+    supplierId: 'sup2',
+    supplierName: 'Steel World',
+    materialId: 'mat2',
+    materialName: 'TMT Steel 12mm',
     quantity: 5,
     unit: 'tonnes',
     unitPrice: 58000,
     totalAmount: 290000,
+    amountPaid: 290000,
     projectId: 'p1',
     projectName: 'Green Valley Apartments',
   },
   {
     id: 'm4',
     date: '2024-12-05',
-    supplier: 'Sand & Aggregates Co.',
-    material: 'River Sand',
+    supplierId: 'sup3',
+    supplierName: 'Sand & Aggregates Co.',
+    materialId: 'mat3',
+    materialName: 'River Sand',
     quantity: 30,
     unit: 'brass',
     unitPrice: 4500,
     totalAmount: 135000,
+    amountPaid: 100000,
     projectId: 'p2',
     projectName: 'Sunrise Commercial Complex',
   },
 ];
+
+export const mockSupplierPayments: SupplierPayment[] = [];
 
 export const mockBills: CustomerBill[] = [
   {
